@@ -1,0 +1,26 @@
+# Byte compiled
+__pycache__/
+*.py[cod]
+*.$py.class
+
+# C Extensions
+*.so
+
+# Large files
+*.zip
+*.gz
+*.csv
+*.pdf
+*.docx
+*.doc
+
+# Distribution Packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+
+# Exclude 'data' directory
+data/
+output/
