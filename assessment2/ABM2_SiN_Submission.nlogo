@@ -20,34 +20,25 @@ breed [cyclists cyclist]
 
 globals
 [
-  gridsize ; size of city grids
-  maximum-speed
-  initial-density
-  car-size
-
-  ;; BELOW: vars from template
-
-  ; inflow-max
-  ; outflow-max
-;  outflow-speed-max
-;  initial-speed
-;  acceleration
-;  deceleration
-;  separation-distance
-;  acceleration-deviation
-;  cars-waiting
+  gridsize             ; size of city grids
+  car-density          ; sets the number of cars in the simulation
+  cyclist-density      ; sets the initial number of cyclists in the simulation
+  agent-size           ; sets the size of car and cyclist agents
+  initial-speed        ; sets the initial speed of cars and cyclists
+  separation-distance  ; sets the minimum distance between vehicles
+  maximum-speed        ; the maximum speed of cars
+  maximum-speed-cyc    ; the maximum speed of cyclists
 ]
 
 
 cars-own
 [
-  speed
-  nh-ahead
+  speed       ; the rate of movement of a car
 ]
 
 cyclists-own
 [
- speed
+ speed-cyc     ; the rate of movement of a cyclist
 ]
 
 
@@ -55,24 +46,6 @@ cyclists-own
 ;===================================================================================
 ; SETUP PROCEDURES
 ;===================================================================================
-
-to setup-globals
-
-;  set gridsize 10
-  set initial-density 0.05
-  set car-size 5
-  set maximum-speed 3
-
-;  set outflow-speed-max 0
-;  set initial-speed 1
-;  set acceleration 0.1
-;  set deceleration 0.5
-;  set separation-distance (car-size * 3)
-;  set acceleration-deviation 0.01
-;  set cars-waiting 0
-
-end
-
 
 to setup
 
@@ -87,10 +60,22 @@ to setup
 end
 
 
+to setup-globals
+
+;  set gridsize 10
+  set car-density 0.05
+  set cyclist-density 0.005
+  set agent-size 5
+  set maximum-speed 3
+  set maximum-speed-cyc 1
+
+end
+
+
 to set-defaults
 
   set-default-shape cars "car"
-  set-default-shape cyclists "circle" ; or "person"
+  set-default-shape cyclists "person" ; or "circle"
 
 end
 
@@ -99,7 +84,7 @@ to setup-patches
 
   ask patches [set pcolor black]
 
-  ; set all patches divisible by gridsize to a road to create a gridded network
+  ;; set all patches divisible by gridsize to a road to create a gridded network
 
   ask patches with [(pycor mod 10) = 0]
   [set pcolor grey]
@@ -112,48 +97,49 @@ end
 
 to populate-road
 
-  ; spawn cars randomly across road network
+  ;; spawn cars randomly across road network
 
   ask patches with [pcolor = grey]
   [
-    if random-float 1 < initial-density
-    [
-      sprout-cars 1 [setup-cars]
-    ]
+    if random-float 1 < car-density
+    [sprout-cars 1 [setup-cars]]
+    if random-float 1 < cyclist-density
+    [sprout-cyclists 1 [setup-cyclists]]
   ]
 
 end
 
+
 to setup-cars
 
-  ; set cars heading on one-way roads
+  ;; set cars heading following a road
   ifelse (xcor mod 10) = 0
-  [set heading 0]
-  [set heading 90]
+  [set heading one-of list 0 180]
+  [set heading one-of list 90 270]
 
-  ;; OR set cars heading in all cardinal directions, but not turning?
-  ;; e.g. [set heading one-of 0 180] & [set heading one-of 90 270]
-
+  ;; set car speed, colour and size
+  ;set speed max (list (0) (min list (initial-speed) (0 - separation-distance)))
+  set speed maximum-speed
   set color scale-color red speed (0 - maximum-speed * 0.25) (1.25 * maximum-speed)
-  set speed 1
-  set size car-size
-;
+  set size agent-size
 
 end
 
-;to setup-cars [min-distance-] ; car context
-;
-;  ;set speed max (list (0) (min list (initial-speed) (min-distance- - separation-distance)))
-;  set color scale-color red speed (0 - maximum-speed * 0.25) (1.25 * maximum-speed)
-;  set heading 90
-;  bk 0.5
-;  set size car-size
-;  set nh-ahead find-nh-ahead
-;
-;  set-current-plot "Space Time Diagram"
-;  create-temporary-plot-pen word (who) ("")
-;
-;end
+
+to setup-cyclists
+
+  ;; set cyclists heading following a road
+  ifelse (xcor mod 10) = 0
+  [set heading one-of list 0 180]
+  [set heading one-of list 90 270]
+
+  ;; set cyclist speed, colour and size
+  set speed-cyc maximum-speed-cyc
+  set color scale-color blue speed-cyc (0 - maximum-speed-cyc * 0.25) (1.25 * maximum-speed-cyc)
+  set size agent-size
+
+end
+
 
 
 ;===================================================================================
@@ -166,184 +152,38 @@ to go
   tick
 
   move-cars
-
-;  plotter
-;
-;  spawn-cars
-;  reset-nhs-ahead
-;
-;  set-speed
-;
-;  move-cars
+  move-cyclists
 
 end
 
 
-;to spawn-cars
-;
-;  let min-car-xcor 0
-;
-;  ifelse any? cars
-;  [set min-car-xcor (min [xcor] of cars)]
-;  [set min-car-xcor world-width]
-;
-;  let min-distance (min-car-xcor - (min-pxcor - 0.5))
-;
-;  ask patches with [pcolor = yellow]
-;  [
-;
-;    if random-float 1 < inflow-max
-;    [
-;      set cars-waiting (cars-waiting + 1)
-;    ]
-;
-;    if (cars-waiting > 0) and (min-distance > separation-distance)
-;    [
-;      sprout-cars 1 [setup-cars min-distance]
-;      set cars-waiting (cars-waiting - 1)
-;    ]
-;  ]
-;
-;end
-
-
-;to reset-nhs-ahead
-;
-;  ask cars [set nh-ahead find-nh-ahead]
-;
-;end
-;
-;
-;to set-speed
-;
-;  ask cars
-;  [
-;    let target-speed set-target-speed
-;    change-speed target-speed
-;    set color scale-color red speed (0 - maximum-speed * 0.25) (1.25 * maximum-speed)
-;  ]
-;
-;end
-;
-;
-;to change-speed [target-speed-]
-;
-;  ifelse target-speed- > speed
-;  [set speed (min list (target-speed-) (speed + acceleration))]
-;  [set speed (max (list (0) (target-speed-) (speed - deceleration)))]
-;
-;  if (target-speed- > 0)
-;  [set speed (speed - acceleration-deviation + random-float (2 * acceleration-deviation))]
-;
-;end
-;
-;
 to move-cars
-;
-;  ask cars
-;  [
-;    fd speed
-;    if pcolor = blue and (random-float 1) < outflow-max
-;    [die]
-;  ]
-;
-;end
+
+  ask cars
+  [
+    fd speed
+  ]
+
+end
 
 
-;to fallen-tree
-;
-;  ask one-of patches with [pcolor = grey and pxcor > 0]
-;  [
-;    sprout-trees 1
-;    [
-;      set color green
-;      set size car-size
-;    ]
-;  ]
-;
-;end
+to move-cyclists
 
+  ask cyclists
+  [
+   fd speed-cyc
+  ]
 
-;===================================================================================
-; REPORTERS
-;===================================================================================
-
-
-
-;to-report set-target-speed
-;
-;  ifelse nh-ahead = nobody
-;  [
-;    let distance-remaining (max-pxcor + 0.5 - xcor)
-;    let slowing-dist (((speed * speed) - (outflow-speed-max * outflow-speed-max)) / (2 * deceleration)) ; v^2 = u^2 + 2ax => x = (v^2 - u^2) / 2a => x = (u^2 - v^2) / 2d
-;    let slowing-time ((speed - outflow-speed-max) / deceleration) ; v = u + at => t = (u - v)/d
-;
-;    ifelse distance-remaining > slowing-dist
-;    [report maximum-speed]
-;    [report min list (maximum-speed) (outflow-speed-max)]
-;  ]
-;  [
-;
-;    let nh-ahead-speed ([speed] of nh-ahead)
-;    let current-gap (distance nh-ahead)
-;    let new-nh-position (current-gap + nh-ahead-speed)
-;    let safe-speed (new-nh-position - separation-distance)
-;    let target-speed (min list (safe-speed) (maximum-speed))
-;
-;    let stopping-dist (speed * speed / (2 * deceleration)) ; v^2 = u^2 + 2ax => x = (v^2 - u^2) / 2a => x = u^2 / 2d [v = 0]
-;    let stopping-time (speed / deceleration) ; v = u + at => u = dt => t = u/d [v = 0]
-;    let where-would-nh-be (current-gap + (nh-ahead-speed * stopping-time))
-;    let danger-indicator ((where-would-nh-be - separation-distance) - stopping-dist)
-;
-;    ifelse danger-indicator > 0
-;    [report target-speed]
-;    [report 0]
-;
-;  ]
-;
-;end
-;
-;
-;to-report find-nh-ahead
-;
-;  let turtles-ahead (turtles with [xcor > [xcor] of myself])
-;
-;  ifelse any? turtles-ahead
-;  [
-;    let gap (min [distance myself] of turtles-ahead)
-;    report one-of turtles-ahead with [(distance myself) = gap]
-;  ]
-;  [
-;    report nobody
-;  ]
-;
-;end
-;
-;
-;to plotter
-;
-;  set-current-plot "Space Time Diagram"
-;
-;  if any? cars
-;  [
-;    ask cars
-;    [
-;      create-temporary-plot-pen word (who) ("")
-;      set-plot-pen-color red
-;      plotxy ticks xcor
-;    ]
-;  ]
-;
-;end
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
-144
-98
-693
-648
+458
+11
+1107
+661
 -1
 -1
-2.696
+3.19
 1
 10
 1
@@ -357,19 +197,19 @@ GRAPHICS-WINDOW
 100
 -100
 100
-1
-1
+0
+0
 1
 ticks
 30.0
 
 BUTTON
-30
-113
-96
-146
+41
+52
+104
+85
 NIL
-setup\n
+setup
 NIL
 1
 T
@@ -381,10 +221,10 @@ NIL
 1
 
 BUTTON
-30
-154
-97
-187
+109
+52
+172
+85
 NIL
 go
 T
@@ -398,10 +238,10 @@ NIL
 1
 
 BUTTON
-31
-195
-98
-228
+109
+89
+172
+122
 step
 go
 NIL
