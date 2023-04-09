@@ -28,6 +28,7 @@ globals
   separation-distance  ; sets the minimum distance between vehicles
   maximum-speed        ; the maximum speed of cars
   maximum-speed-cyc    ; the maximum speed of cyclists
+  minimum-speed        ; the minimum speed of vehicles
   turn-frequency       ; the likelihood an agent will turn at an intersection
 ]
 
@@ -64,11 +65,12 @@ end
 to setup-globals
 
 ;  set gridsize 10
-  set car-density 0.05
+  set car-density 0.0
   set cyclist-density 0.005
   set agent-size 5
-  set maximum-speed 1
-  set maximum-speed-cyc 0.3
+  set maximum-speed 3
+  set maximum-speed-cyc 1
+  set minimum-speed 0
   set turn-frequency 0.1
 
 end
@@ -152,19 +154,21 @@ end
 to go
 
   tick
-
   set-speed
   move
 
 end
 
-to set-speed   ;; applies equally to cars/cyclists
+
+to set-speed   ;; checks whether an agent needs to change behaviour depending on a vehicle in front
 
   ask turtles
   [
-    ifelse any? turtles-on patch-ahead 1
+    ifelse any? turtles-on patch-ahead 1 ;; identify any vehicles ahead
     [decelerate]
     [accelerate]
+    if breed = cars [set color scale-color red speed (0 - maximum-speed * 0.25) (1.25 * maximum-speed)]
+    if breed = cyclists [set color scale-color blue speed (0 - maximum-speed-cyc * 0.25) (1.25 * maximum-speed-cyc)]
   ]
 
 end
@@ -172,16 +176,26 @@ end
 
 to decelerate  ;; agent decreases speed to less than the neighbour ahead
 
-  let infront one-of turtles-on patch-ahead
-  ask turtle
-
+  let infront (one-of turtles-on patch-ahead 1)  ;; identify the vehicle ahead
+  let infront-speed [speed] of infront           ;; collect the speed of that vehicle
+  if (speed > minimum-speed) and (infront-speed < speed)  ;; if that vehicle is slower, then ...
+  [set speed infront-speed - 0.1]                             ;; set speed to less than their speed
+                                                              ;; but do not let a vehicle go below min speed
 
 end
 
 
 to accelerate  ;; agent increases speed incrementally up to maximum-speed
 
+  if breed = cars
+  [
+    if speed < maximum-speed [set speed (speed + 0.1)]
+  ]
 
+  if breed = cyclists
+  [
+    if speed < maximum-speed-cyc [set speed (speed + 0.1)]
+  ]
 
 end
 
