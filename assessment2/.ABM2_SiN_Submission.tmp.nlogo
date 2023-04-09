@@ -28,6 +28,7 @@ globals
   separation-distance  ; sets the minimum distance between vehicles
   maximum-speed        ; the maximum speed of cars
   maximum-speed-cyc    ; the maximum speed of cyclists
+  turn-frequency       ; the likelihood an agent will turn at an intersection
 ]
 
 
@@ -38,7 +39,7 @@ cars-own
 
 cyclists-own
 [
- speed-cyc     ; the rate of movement of a cyclist
+ speed     ; the rate of movement of a cyclist
 ]
 
 
@@ -66,8 +67,9 @@ to setup-globals
   set car-density 0.05
   set cyclist-density 0.005
   set agent-size 5
-  set maximum-speed 3
-  set maximum-speed-cyc 1
+  set maximum-speed 1
+  set maximum-speed-cyc 0.3
+  set turn-frequency 0.1
 
 end
 
@@ -134,8 +136,8 @@ to setup-cyclists
   [set heading one-of list 90 270]
 
   ;; set cyclist speed, colour and size
-  set speed-cyc maximum-speed-cyc
-  set color scale-color blue speed-cyc (0 - maximum-speed-cyc * 0.25) (1.25 * maximum-speed-cyc)
+  set speed maximum-speed-cyc
+  set color scale-color blue speed (0 - maximum-speed-cyc * 0.25) (1.25 * maximum-speed-cyc)
   set size agent-size
 
 end
@@ -151,25 +153,71 @@ to go
 
   tick
 
-  move-cars
+  set-speed
+  move
+
+end
+
+to set-speed   ;; applies equally to cars/cyclists
+
+  ask turtles
+  [
+    ifelse any? turtles-on patch-ahead 1
+    [decelerate]
+    [accelerate]
+  ]
 
 end
 
 
-to move-cars
+to decelerate  ;; agent decreases speed to less than the neighbour ahead
 
-  ask cars
+  let infront one-of turtles-on patch-ahead
+  ask turtle
+
+
+end
+
+
+to accelerate  ;; agent increases speed incrementally up to maximum-speed
+
+
+
+end
+
+
+to move  ;; applies equally to cars/cyclists
+
+  ask turtles
   [
+    ;; check if agent is at an intersection
+    if (xcor mod 10 = 0) and (ycor mod 10 = 0)
+    [
+      ;; randomly take a right or left turn
+      if random-float 1 < turn-frequency
+      [right one-of list 90 -90]
+    ]
     fd speed
   ]
 
 end
+
+
+;===================================================================================
+; REPORTERS
+;===================================================================================
+
+to-report collision
+
+  ;; count the number of cars and cyclists at identical locations
+
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
-458
-11
-1107
-661
+213
+10
+862
+660
 -1
 -1
 3.19
