@@ -179,16 +179,6 @@ to go
 end
 
 
-to move-cars
-
-  ask cars
-  [
-    fd speed
-  ]
-
-end
-
-
 ;to spawn-cars
 ;
 ;  let min-car-xcor 0
@@ -248,7 +238,16 @@ end
 ;end
 ;
 ;
-
+to move-cars
+;
+;  ask cars
+;  [
+;    fd speed
+;    if pcolor = blue and (random-float 1) < outflow-max
+;    [die]
+;  ]
+;
+;end
 
 
 ;to fallen-tree
