@@ -29,7 +29,7 @@ globals
   maximum-speed        ; the maximum speed of cars
   maximum-speed-cyc    ; the maximum speed of cyclists
   minimum-speed        ; the minimum speed of vehicles
-  turn-frequency       ; the likelihood an agent will turn at an intersection
+;  turn-frequency       ; the likelihood an agent will turn at an intersection
 ]
 
 
@@ -72,7 +72,7 @@ to setup-globals
   set maximum-speed 1
   set maximum-speed-cyc 0.3
   set minimum-speed 0
-  set turn-frequency 0.1
+;  set turn-frequency 0.1
 
 end
 
@@ -168,9 +168,21 @@ end
 to go
 
   tick
+
+  add-cyclist
   set-speed
   move
   check-collision
+
+end
+
+
+to add-cyclist
+
+  ask one-of patches with [(pcolor = green) and (any? turtles-here = false)]
+  [
+    sprout-cyclists 1 [setup-cyclists]
+  ]
 
 end
 
@@ -248,10 +260,25 @@ end
 ; REPORTERS
 ;===================================================================================
 
+to-report count-cyclists
+
+  report count cyclists
+
+end
+
+
 to-report count-collisions
 
   ;; count the number of cars and cyclists at identical locations
   report sum [collisions] of cars
+
+end
+
+
+to-report collisions-per-capita
+
+  ;; count the number of collisions per cyclist on road
+  report (sum [collisions] of cars) / (count cyclists)
 
 end
 @#$#@#$#@
@@ -334,15 +361,55 @@ NIL
 1
 
 MONITOR
-19
-155
-180
-200
+22
+215
+183
+260
 NIL
 count-collisions
 0
 1
 11
+
+MONITOR
+23
+268
+183
+313
+NIL
+collisions-per-capita
+4
+1
+11
+
+MONITOR
+22
+162
+183
+207
+NIL
+count-cyclists
+0
+1
+11
+
+PLOT
+874
+10
+1436
+240
+Collisions per capita
+Tick
+Collisions per capita
+0.0
+10.0
+0.0
+0.1
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot collisions-per-capita"
 
 @#$#@#$#@
 ## WHAT IS IT?
