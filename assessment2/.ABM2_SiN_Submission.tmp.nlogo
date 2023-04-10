@@ -3,7 +3,7 @@
 ; Assessment 2, T2 2023
 ;
 ; Author: J Post
-; Date last updated: 2023-04-0
+; Date last updated: 2023-04-10
 ;
 ; SAFETY IN NUMBERS: A SIMULATION OF CYCLIST-VEHICLE COLLISIONS
 ;
@@ -36,6 +36,7 @@ globals
 cars-own
 [
   speed       ; the rate of movement of a car
+  collisions  ; the number of cylists a car has collided with
 ]
 
 cyclists-own
@@ -136,6 +137,7 @@ to setup-cars
   set speed maximum-speed
   set color scale-color red speed (0 - maximum-speed * 0.25) (1.25 * maximum-speed)
   set size agent-size
+  set collisions 0
 
 end
 
@@ -168,6 +170,7 @@ to go
   tick
   set-speed
   move
+  check-collision
 
 end
 
@@ -226,6 +229,17 @@ to move  ;; applies equally to cars/cyclists
     fd speed
   ]
 
+end
+
+
+to check-collision
+
+  ask cars [
+    if any? cyclists-here [
+      let casualties count cyclists-here
+      set collisions (collisions + casualties)
+    ]
+  ]
 
 end
 
@@ -234,9 +248,10 @@ end
 ; REPORTERS
 ;===================================================================================
 
-to-report collision
+to-report count-collision
 
   ;; count the number of cars and cyclists at identical locations
+  report sum [collisions] of cars
 
 end
 @#$#@#$#@
@@ -317,6 +332,17 @@ NIL
 NIL
 NIL
 1
+
+MONITOR
+19
+155
+180
+200
+NIL
+count-collisions
+0
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
