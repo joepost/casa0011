@@ -65,11 +65,11 @@ end
 to setup-globals
 
 ;  set gridsize 10
-  set car-density 0.0
-  set cyclist-density 0.005
+  set car-density 0.01
+  set cyclist-density 0.01
   set agent-size 5
   set maximum-speed 3
-  set maximum-speed-cyc 1
+  set maximum-speed-cyc
   set minimum-speed 0
   set turn-frequency 0.1
 
@@ -205,7 +205,7 @@ to move  ;; applies equally to cars/cyclists
   ask turtles
   [
     ;; check if agent is at an intersection
-    if (xcor mod 10 = 0) and (ycor mod 10 = 0)
+    if (int xcor mod 10 = 0) and (int ycor mod 10 = 0)
     [
       ;; randomly take a right or left turn
       if random-float 1 < turn-frequency
