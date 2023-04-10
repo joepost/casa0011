@@ -3,7 +3,7 @@
 ; Assessment 2, T2 2023
 ;
 ; Author: J Post
-; Date last updated: 2023-04-09
+; Date last updated: 2023-04-10
 ;
 ; SAFETY IN NUMBERS: A SIMULATION OF CYCLIST-VEHICLE COLLISIONS
 ;
@@ -94,19 +94,28 @@ to setup-patches
   [set pcolor grey]
 
   ask patches with [(pxcor mod 10) = 0]
-  [set pcolor grey]
+  [set pcolor green]
+
+  ask patches with [(pxcor mod 10 = 0) and (pycor mod 10 = 0)]
+  [set pcolor white]
 
 end
 
 
 to populate-road
 
-  ;; spawn cars randomly across road network
+  ;; spawn cars/cyclists randomly across road network
+  ;; car lanes = grey
+  ;; cyclist lanes = green
 
   ask patches with [pcolor = grey]
   [
     if random-float 1 < car-density
     [sprout-cars 1 [setup-cars]]
+  ]
+
+  ask patches with [pcolor = green]
+  [
     if random-float 1 < cyclist-density
     [sprout-cyclists 1 [setup-cyclists]]
   ]
@@ -117,12 +126,13 @@ end
 to setup-cars
 
   ;; set cars heading following a road
-  ifelse (xcor mod 10) = 0
-  [set heading one-of list 0 180]
-  [set heading one-of list 90 270]
+;  ifelse (xcor mod 10) = 0
+;  [set heading one-of list 0 180]
+;  [set heading one-of list 90 270]
+
+  set heading one-of list 90 270
 
   ;; set car speed, colour and size
-  ;set speed max (list (0) (min list (initial-speed) (0 - separation-distance)))
   set speed maximum-speed
   set color scale-color red speed (0 - maximum-speed * 0.25) (1.25 * maximum-speed)
   set size agent-size
@@ -133,9 +143,11 @@ end
 to setup-cyclists
 
   ;; set cyclists heading following a road
-  ifelse (xcor mod 10) = 0
-  [set heading one-of list 0 180]
-  [set heading one-of list 90 270]
+;  ifelse (xcor mod 10) = 0
+;  [set heading one-of list 0 180]
+;  [set heading one-of list 90 270]
+
+  set heading one-of list 0 180
 
   ;; set cyclist speed, colour and size
   set speed maximum-speed-cyc
@@ -204,15 +216,16 @@ to move  ;; applies equally to cars/cyclists
 
   ask turtles
   [
-    ;; check if agent is at an intersection
-    if (int xcor mod 10 = 0) and (int ycor mod 10 = 0)
-    [
-      ;; randomly take a right or left turn
-      if random-float 1 < turn-frequency
-      [right one-of list 90 -90]
-    ]
+;    ;; check if agent is at an intersection
+;    if (int xcor mod 10 = 0) and (int ycor mod 10 = 0)
+;    [
+;      ;; randomly take a right or left turn
+;      if random-float 1 < turn-frequency
+;      [right one-of list 90 -90]
+;    ]
     fd speed
   ]
+
 
 end
 
