@@ -184,17 +184,10 @@ to go
       ;; sub-procedures: see-cyclists, remember-cyclists
   move
   check-collision
+  add-cyclist
 
 end
 
-
-to add-cyclist  ;; adds a cyclist to the simulation at each tick
-
-  if random-float 1 < cyclist-add-rate [
-    ask one-of patches with [pcolor = grey and (any? turtles-here = false)][sprout-cyclists 1 [setup-cyclists]]
-  ]
-
-end
 
 
 to set-speed   ;; checks whether an agent needs to change behaviour depending on a vehicle in front
@@ -286,13 +279,13 @@ to move  ;; applies equally to cars/cyclists
 
   ask turtles
   [
-;    ;; check if agent is at an intersection
-;    if (int xcor mod 10 = 0) and (int ycor mod 10 = 0)
-;    [
-;      ;; randomly take a right or left turn
-;      if random-float 1 < turn-frequency
-;      [right one-of list 90 -90]
-;    ]
+    ;; check if agent is at an intersection
+    if (int xcor mod 10 = 0) and (int ycor mod 10 = 0)
+    [
+      ;; randomly take a right or left turn
+      if random-float 1 < turn-frequency
+      [right one-of list 90 -90]
+    ]
     fd speed
   ]
 
@@ -320,6 +313,15 @@ to check-collision  ;; cars check whether a cyclist is on the same patch (criter
         set collisions (collisions + casualties)               ; all encounters between cars and cyclists translate into collisions
       ]
     ]
+  ]
+
+end
+
+
+to add-cyclist  ;; adds a cyclist to the simulation at each tick
+
+  if random-float 1 < cyclist-add-rate [
+    ask one-of patches with [pcolor = grey and (any? turtles-here = false)][sprout-cyclists 1 [setup-cyclists]]
   ]
 
 end
