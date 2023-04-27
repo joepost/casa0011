@@ -3,7 +3,7 @@
 ; Assessment 2, T2 2023
 ;
 ; Author: J Post
-; Date last updated: 2023-04-10
+; Date last updated: 2023-04-27
 ;
 ; SAFETY IN NUMBERS: A SIMULATION OF CYCLIST-VEHICLE COLLISIONS
 ;
@@ -20,23 +20,32 @@ breed [cyclists cyclist]
 
 globals
 [
+;  learning on         ; switch in interface; sets whether cars have memory/awareness of cyclists
   gridsize             ; size of city grids
   car-density          ; sets the number of cars in the simulation
   cyclist-density      ; sets the initial number of cyclists in the simulation
+  cyclist-add-rate     ; sets the rate at which new cyclists enter the model
   agent-size           ; sets the size of car and cyclist agents
   initial-speed        ; sets the initial speed of cars and cyclists
   separation-distance  ; sets the minimum distance between vehicles
   maximum-speed        ; the maximum speed of cars
   maximum-speed-cyc    ; the maximum speed of cyclists
   minimum-speed        ; the minimum speed of vehicles
-;  turn-frequency       ; the likelihood an agent will turn at an intersection
+  memory-span          ; the number of ticks a driver retains memory of observing a cyclist in the system
+  salience             ; degree to which bicycles in line of vision are observed by drivers
+  turn-frequency       ; the likelihood an agent will turn at an intersection
 ]
 
 
 cars-own
 [
-  speed       ; the rate of movement of a car
-  collisions  ; the number of cylists a car has collided with
+  speed                 ; the rate of movement of a car
+  potential-collisions  ; the number of cyclists a car has entered an intersection with
+  collisions            ; the number of cyclists a car has collided with
+  awareness             ; the driver's status of being aware of a cyclist
+  memory                ; how long a driver has been aware for
+  association           ; level of driver's association between driving and expectation of encountering a cyclist
+                        ;   can be thought of as the 'level' of learning/behavioural adaptation
 ]
 
 cyclists-own
@@ -56,48 +65,46 @@ to setup
   reset-ticks
 
   setup-globals
-  set-defaults
   setup-patches
   populate-road
+      ;; sub-procedures: setup-cars, setup-cyclists
 
 end
 
 
-to setup-globals
+to setup-globals    ;; set the starting values for global variables
 
-;  set gridsize 10
+  set gridsize 10
   set car-density 0.01
   set cyclist-density 0.01
+  set cyclist-add-rate 0.5
   set agent-size 5
   set maximum-speed 1
   set maximum-speed-cyc 0.3
-  set minimum-speed 0
-;  set turn-frequency 0.1
-
-end
-
-
-to set-defaults
+  set minimum-speed 0.1
+  set memory-span 30
+  set salience 0.25
+  set turn-frequency 0.1
 
   set-default-shape cars "car"
-  set-default-shape cyclists "person" ; or "circle"
+  set-default-shape cyclists "person"
 
 end
 
 
-to setup-patches
+to setup-patches    ;; setup the simulation environment
 
   ask patches [set pcolor black]
 
   ;; set all patches divisible by gridsize to a road to create a gridded network
 
-  ask patches with [(pycor mod 10) = 0]
+  ask patches with [(pycor mod gridsize) = 0]
   [set pcolor grey]
 
-  ask patches with [(pxcor mod 10) = 0]
-  [set pcolor green]
+  ask patches with [(pxcor mod gridsize) = 0]
+  [set pcolor grey]
 
-  ask patches with [(pxcor mod 10 = 0) and (pycor mod 10 = 0)]
+  ask patches with [(pxcor mod gridsize = 0) and (pycor mod gridsize = 0)]
   [set pcolor white]
 
 end
@@ -106,8 +113,6 @@ end
 to populate-road
 
   ;; spawn cars/cyclists randomly across road network
-  ;; car lanes = grey
-  ;; cyclist lanes = green
 
   ask patches with [pcolor = grey]
   [
@@ -115,9 +120,9 @@ to populate-road
     [sprout-cars 1 [setup-cars]]
   ]
 
-  ask patches with [pcolor = green]
+  ask patches with [pcolor = grey and (any? cars-here = false)]
   [
-    if random-float 1 < cyclist-density
+    if random-float 1 < car-density
     [sprout-cyclists 1 [setup-cyclists]]
   ]
 
@@ -127,17 +132,21 @@ end
 to setup-cars
 
   ;; set cars heading following a road
-;  ifelse (xcor mod 10) = 0
-;  [set heading one-of list 0 180]
-;  [set heading one-of list 90 270]
 
-  set heading one-of list 90 270
+  ;; For breeds sharing roads:
+  ifelse (xcor mod gridsize) = 0
+  [set heading one-of list 0 180]
+  [set heading one-of list 90 270]
 
   ;; set car speed, colour and size
   set speed maximum-speed
   set color scale-color red speed (0 - maximum-speed * 0.25) (1.25 * maximum-speed)
   set size agent-size
   set collisions 0
+  set potential-collisions 0
+  set awareness false
+  set memory 0
+  set association 0
 
 end
 
@@ -145,11 +154,11 @@ end
 to setup-cyclists
 
   ;; set cyclists heading following a road
-;  ifelse (xcor mod 10) = 0
-;  [set heading one-of list 0 180]
-;  [set heading one-of list 90 270]
 
-  set heading one-of list 0 180
+  ;; For breeds sharing roads:
+  ifelse (xcor mod gridsize) = 0
+  [set heading one-of list 0 180]
+  [set heading one-of list 90 270]
 
   ;; set cyclist speed, colour and size
   set speed maximum-speed-cyc
@@ -169,22 +178,16 @@ to go
 
   tick
 
-  add-cyclist
   set-speed
+      ;; sub-procedures: decelerate, accelerate
+  learning-procedure
+      ;; sub-procedures: see-cyclists, remember-cyclists
   move
   check-collision
+  add-cyclist
 
 end
 
-
-to add-cyclist
-
-  ask one-of patches with [(pcolor = green) and (any? turtles-here = false)]
-  [
-    sprout-cyclists 1 [setup-cyclists]
-  ]
-
-end
 
 
 to set-speed   ;; checks whether an agent needs to change behaviour depending on a vehicle in front
@@ -227,30 +230,98 @@ to accelerate  ;; agent increases speed incrementally up to maximum-speed
 end
 
 
+to learning-procedure     ;; if learning switched to 'on', run the contained procedures
+
+  if learning-on = true
+  [
+    see-cyclists
+    remember-cyclists
+  ]
+
+end
+
+
+to see-cyclists   ;; cars look ahead for any cyclists in vision, and if so activate cyclist awareness
+
+    ask cars
+  [
+    ifelse any? cyclists-on patch-ahead 1
+    [
+      set awareness true
+      set memory memory-span
+      let assoc-chng salience * (0.8 - association)
+      set association (association + assoc-chng)
+    ]
+    [
+      let assoc-chng salience * (0 - association)
+      set association (association + assoc-chng)
+    ]
+
+  ]
+
+end
+
+
+to remember-cyclists   ;; car memory decays until they are no longer aware of cyclists
+                       ;;  from this point, association begins to decrease
+
+  ask cars
+  [
+    ifelse memory > 0
+    [set memory (memory - 1)]
+    [set awareness false]
+  ]
+
+end
+
+
 to move  ;; applies equally to cars/cyclists
 
   ask turtles
   [
-;    ;; check if agent is at an intersection
-;    if (int xcor mod 10 = 0) and (int ycor mod 10 = 0)
-;    [
-;      ;; randomly take a right or left turn
-;      if random-float 1 < turn-frequency
-;      [right one-of list 90 -90]
-;    ]
+    ;; check if agent is at an intersection
+    if (int xcor mod 10 = 0) and (int ycor mod 10 = 0)
+    [
+      ;; randomly take a right or left turn
+      if random-float 1 < turn-frequency
+      [right one-of list 90 -90]
+    ]
     fd speed
   ]
 
 end
 
 
-to check-collision
+to check-collision  ;; cars check whether a cyclist is on the same patch (criteria for a collision)
 
   ask cars [
     if any? cyclists-here [
-      let casualties count cyclists-here
-      set collisions (collisions + casualties)
+      ifelse learning-on = true
+      [  ;; IF LEARNING IS ON:
+        let potential-casualties count cyclists-here           ; only count potential collisions with cyclists, not other motorists
+        set potential-collisions (potential-collisions + potential-casualties)     ; record the total potential collisions car has experienced over simulation
+
+        if random-float 1 < (1 - association) [        ; casualties = potential casualties multiplied by probability of car being prepared for cyclist (1 - association)
+                                                                    ;  a higher association results in lower likelihood of actual casualties
+          let casualties potential-casualties
+          set collisions (collisions + casualties)
+        ]
+
+      ]
+      [  ;; IF LEARNING IS OFF:
+        let casualties count cyclists-here
+        set collisions (collisions + casualties)               ; all encounters between cars and cyclists translate into collisions
+      ]
     ]
+  ]
+
+end
+
+
+to add-cyclist  ;; adds a cyclist to the simulation at each tick
+
+  if random-float 1 < cyclist-add-rate [
+    ask one-of patches with [pcolor = grey and (any? turtles-here = false)][sprout-cyclists 1 [setup-cyclists]]
   ]
 
 end
@@ -260,6 +331,13 @@ end
 ; REPORTERS
 ;===================================================================================
 
+to-report count-cars
+
+  report count cars
+
+end
+
+
 to-report count-cyclists
 
   report count cyclists
@@ -267,9 +345,15 @@ to-report count-cyclists
 end
 
 
+to-report count-potential-collisions
+
+  report sum [potential-collisions] of cars
+
+end
+
+
 to-report count-collisions
 
-  ;; count the number of cars and cyclists at identical locations
   report sum [collisions] of cars
 
 end
@@ -279,6 +363,22 @@ to-report collisions-per-capita
 
   ;; count the number of collisions per cyclist on road
   report (sum [collisions] of cars) / (count cyclists)
+
+end
+
+
+to-report proportion-aware
+
+  ;; proportion of cars in the system that are currently cyclist aware
+  report (count cars with [awareness = true]) / (count cars)
+
+end
+
+
+to-report mean-association
+
+  ;; mean association value across all cars in the simulation
+  report mean ([association] of cars)
 
 end
 @#$#@#$#@
@@ -361,10 +461,10 @@ NIL
 1
 
 MONITOR
-22
-215
-183
-260
+36
+461
+197
+506
 NIL
 count-collisions
 0
@@ -372,10 +472,10 @@ count-collisions
 11
 
 MONITOR
-23
-268
-183
-313
+37
+514
+197
+559
 NIL
 collisions-per-capita
 4
@@ -383,10 +483,10 @@ collisions-per-capita
 11
 
 MONITOR
-22
-162
-183
-207
+37
+361
+198
+406
 NIL
 count-cyclists
 0
@@ -410,6 +510,97 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot collisions-per-capita"
+
+MONITOR
+38
+311
+199
+356
+NIL
+count-cars
+0
+1
+11
+
+SWITCH
+36
+149
+174
+182
+learning-on
+learning-on
+0
+1
+-1000
+
+PLOT
+873
+246
+1439
+418
+Proportion of cars that are cyclist aware
+NIL
+NIL
+0.0
+10.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot proportion-aware"
+
+MONITOR
+38
+565
+197
+610
+NIL
+proportion-aware
+4
+1
+11
+
+PLOT
+874
+424
+1439
+574
+Mean association
+NIL
+NIL
+0.0
+10.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot mean-association"
+
+MONITOR
+39
+617
+196
+662
+NIL
+mean-association
+4
+1
+11
+
+MONITOR
+37
+410
+198
+455
+NIL
+count-potential-collisions
+0
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
