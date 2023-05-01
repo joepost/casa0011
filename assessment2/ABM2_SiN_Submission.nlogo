@@ -75,7 +75,7 @@ end
 to setup-globals    ;; set the starting values for global variables
 
   set gridsize 10
-  set car-density 0.01
+  set car-density 0.05
   set cyclist-density 0.01
   set cyclist-add-rate 0.5
   set agent-size 5
@@ -122,7 +122,7 @@ to populate-road
 
   ask patches with [pcolor = grey and (any? cars-here = false)]
   [
-    if random-float 1 < car-density
+    if random-float 1 < cyclist-density
     [sprout-cyclists 1 [setup-cyclists]]
   ]
 
@@ -300,12 +300,12 @@ to check-collision  ;; cars check whether a cyclist is on the same patch (criter
       [  ;; IF LEARNING IS ON:
         let potential-casualties count cyclists-here           ; only count potential collisions with cyclists, not other motorists
         set potential-collisions (potential-collisions + potential-casualties)     ; record the total potential collisions car has experienced over simulation
-
-        if random-float 1 < (1 - association) [        ; casualties = potential casualties multiplied by probability of car being prepared for cyclist (1 - association)
-                                                                    ;  a higher association results in lower likelihood of actual casualties
-          let casualties potential-casualties
-          set collisions (collisions + casualties)
-        ]
+        if awareness = false [set collisions (collisions + potential-casualties)]   ; TESTING
+;        if random-float 1 < (1 - association) [        ; casualties = potential casualties multiplied by probability of car being prepared for cyclist (1 - association)
+;                                                                    ;  a higher association results in lower likelihood of actual casualties
+;          let casualties potential-casualties
+;          set collisions (collisions + casualties)
+;        ]
 
       ]
       [  ;; IF LEARNING IS OFF:
