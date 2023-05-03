@@ -26,8 +26,6 @@ globals
   cyclist-density      ; sets the initial number of cyclists in the simulation
   cyclist-add-rate     ; sets the rate at which new cyclists enter the model
   agent-size           ; sets the size of car and cyclist agents
-  initial-speed        ; sets the initial speed of cars and cyclists
-  separation-distance  ; sets the minimum distance between vehicles
   maximum-speed        ; the maximum speed of cars
   maximum-speed-cyc    ; the maximum speed of cyclists
   minimum-speed        ; the minimum speed of vehicles
