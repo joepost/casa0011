@@ -77,12 +77,12 @@ to setup-globals    ;; set the starting values for global variables
   set gridsize 10
   set car-density 0.05
   set cyclist-density 0.01
-  set cyclist-add-rate 0.5
+  set cyclist-add-rate 1
   set agent-size 5
   set maximum-speed 1
   set maximum-speed-cyc 0.3
   set minimum-speed 0.1
-  set memory-span 300
+  set memory-span 50
   set salience 0.25
   set turn-frequency 0.1
 
@@ -247,14 +247,14 @@ to see-cyclists   ;; cars look ahead for any cyclists in vision, and if so activ
   [
     ifelse any? cyclists-on patch-ahead 1
     [
-      set awareness true
-      set memory memory-span
-;      let assoc-chng salience * (0.8 - association)  ;; association removed in SIMPLIFIED VERSION
-;      set association (association + assoc-chng)
+      set awareness true                               ; drivers become aware of cyclists
+      set memory memory-span                           ; memory of seeing a cyclist resets to max point
+      let assoc-chng salience * (0.8 - association)    ; calculate the stepwise change in association, which increases due to seeing a cyclist
+      set association (association + assoc-chng)       ; adjust the driver's association accordingly
     ]
     [
-;      let assoc-chng salience * (0 - association)
-;      set association (association + assoc-chng)
+      let assoc-chng salience * (0 - association)      ;; if no cyclists observed, change in association decreases
+      set association (association + assoc-chng)
     ]
 
   ]
@@ -275,7 +275,7 @@ to remember-cyclists   ;; car memory decays until they are no longer aware of cy
 end
 
 
-to move  ;; applies equally to cars/cyclists
+to move  ;; cars/cyclists move forward, and randomly turn or continue if at an intersection
 
   ask turtles
   [
@@ -298,15 +298,13 @@ to check-collision  ;; cars check whether a cyclist is on the same patch (criter
     if any? cyclists-here [
       ifelse learning-on = true
       [  ;; IF LEARNING IS ON:
-        let potential-casualties count cyclists-here           ; only count potential collisions with cyclists, not other motorists
+        let potential-casualties count cyclists-here                               ; only count potential collisions with cyclists, not other motorists
         set potential-collisions (potential-collisions + potential-casualties)     ; record the total potential collisions car has experienced over simulation
-        if awareness = false [set collisions (collisions + potential-casualties)]   ; TESTING
-
-;        if random-float 1 < (1 - association) [        ; casualties = potential casualties multiplied by probability of car being prepared for cyclist (1 - association)
-;                                                                    ;  a higher association results in lower likelihood of actual casualties
-;          let casualties potential-casualties
-;          set collisions (collisions + casualties)
-;        ]
+        if random-float 1 < (1 - association) [                                    ; casualties = potential casualties multiplied by probability of car being prepared for cyclist (1 - association)
+                                                                                   ;  a higher association results in lower likelihood of actual casualties
+          let casualties potential-casualties
+          set collisions (collisions + casualties)
+        ]
 
       ]
       [  ;; IF LEARNING IS OFF:
@@ -321,7 +319,7 @@ end
 
 to add-cyclist  ;; adds a cyclist to the simulation at each tick
 
-  if random-float 1 < cyclist-add-rate [
+  if random-float 1 <= cyclist-add-rate [
     ask one-of patches with [pcolor = grey and (any? turtles-here = false)][sprout-cyclists 1 [setup-cyclists]]
   ]
 
@@ -397,7 +395,7 @@ GRAPHICS-WINDOW
 656
 -1
 -1
-1.06
+2.1163
 1
 10
 1
@@ -407,10 +405,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--300
-300
--300
-300
+-150
+150
+-150
+150
 0
 0
 1
@@ -502,10 +500,10 @@ count-cyclists
 11
 
 PLOT
-874
-10
-1436
-240
+866
+139
+1428
+284
 Collisions per capita
 Tick
 Collisions per capita
@@ -542,9 +540,9 @@ learning-on
 -1000
 
 PLOT
-873
-246
-1439
+866
+289
+1432
 418
 Proportion of cars that are cyclist aware
 NIL
@@ -560,10 +558,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot proportion-aware"
 
 MONITOR
-38
-508
-197
-553
+37
+559
+196
+604
 NIL
 proportion-aware
 4
@@ -571,10 +569,10 @@ proportion-aware
 11
 
 PLOT
-874
-424
-1439
-544
+865
+421
+1141
+661
 Mean association
 NIL
 NIL
@@ -589,10 +587,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot mean-association"
 
 MONITOR
-39
-560
-196
-605
+38
+611
+195
+656
 NIL
 mean-association
 4
@@ -611,10 +609,10 @@ count-potential-collisions
 11
 
 PLOT
-874
-549
-1438
-669
+1145
+421
+1433
+661
 collision ratio
 NIL
 NIL
@@ -629,15 +627,34 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot collision-ratio"
 
 MONITOR
-39
-611
-195
-656
+36
+507
+196
+552
 NIL
 collision-ratio
 3
 1
 11
+
+PLOT
+865
+14
+1428
+134
+Collisions
+Tick
+Count
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Collisions" 1.0 0 -16777216 true "" "plot count-collisions"
+"Cyclists" 1.0 0 -11221820 true "" "plot count-cyclists"
 
 @#$#@#$#@
 ## WHAT IS IT?
