@@ -367,6 +367,13 @@ to-report collisions-per-capita
 
 end
 
+to-report collision-ratio
+
+  ;; ratio of potential collisions to actual collisions
+  report (sum [collisions] of cars) / (sum [potential-collisions] of cars)
+
+end
+
 
 to-report proportion-aware
 
@@ -463,9 +470,9 @@ NIL
 
 MONITOR
 36
-461
+404
 197
-506
+449
 NIL
 count-collisions
 0
@@ -474,9 +481,9 @@ count-collisions
 
 MONITOR
 37
-514
+457
 197
-559
+502
 NIL
 collisions-per-capita
 4
@@ -485,9 +492,9 @@ collisions-per-capita
 
 MONITOR
 37
-361
+304
 198
-406
+349
 NIL
 count-cyclists
 0
@@ -514,9 +521,9 @@ PENS
 
 MONITOR
 38
-311
+254
 199
-356
+299
 NIL
 count-cars
 0
@@ -554,9 +561,9 @@ PENS
 
 MONITOR
 38
-565
+508
 197
-610
+553
 NIL
 proportion-aware
 4
@@ -567,7 +574,7 @@ PLOT
 874
 424
 1439
-574
+544
 Mean association
 NIL
 NIL
@@ -583,9 +590,9 @@ PENS
 
 MONITOR
 39
-617
+560
 196
-662
+605
 NIL
 mean-association
 4
@@ -594,12 +601,41 @@ mean-association
 
 MONITOR
 37
-410
+353
 198
-455
+398
 NIL
 count-potential-collisions
 0
+1
+11
+
+PLOT
+874
+549
+1438
+669
+collision ratio
+NIL
+NIL
+0.0
+10.0
+0.0
+0.5
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot collision-ratio"
+
+MONITOR
+39
+611
+195
+656
+NIL
+collision-ratio
+3
 1
 11
 
