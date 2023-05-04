@@ -81,7 +81,7 @@ to setup-globals    ;; set the starting values for global variables
   set maximum-speed-cyc 0.3
   set minimum-speed 0.1
   set memory-span 50
-  set salience 0.25
+  set salience 0.9
   set turn-frequency 0.1
 
   set-default-shape cars "car"
@@ -204,11 +204,14 @@ end
 
 to decelerate  ;; agent decreases speed to less than the neighbour ahead
 
-  let infront (one-of turtles-on patch-ahead 1)  ;; identify the vehicle ahead
-  let infront-speed [speed] of infront           ;; collect the speed of that vehicle
-  if (speed > minimum-speed) and (infront-speed < speed)  ;; if that vehicle is slower, then ...
-  [set speed infront-speed - 0.1]                             ;; set speed to less than their speed
-                                                              ;; but do not let a vehicle go below min speed
+  let infront (one-of turtles-on patch-ahead 1)            ;; identify the vehicle ahead
+  let infront-speed [speed] of infront                     ;; collect the speed of that vehicle
+  if (speed > minimum-speed) and (infront-speed < speed)   ;; if that vehicle is slower, then ...
+  [
+    set speed infront-speed - 0.1                           ;; set speed to less than their speed
+    if (speed < minimum-speed) [set speed minimum-speed]    ;; but do not let a vehicle go below min speed
+  ]
+
 
 end
 
