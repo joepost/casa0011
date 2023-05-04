@@ -31,6 +31,7 @@ globals
   minimum-speed        ; the minimum speed of vehicles
   memory-span          ; the number of ticks a driver retains memory of observing a cyclist in the system
   salience             ; degree to which bicycles in line of vision are observed by drivers
+  max-assoc            ; maximum level of association
   turn-frequency       ; the likelihood an agent will turn at an intersection
 ]
 
@@ -82,6 +83,7 @@ to setup-globals    ;; set the starting values for global variables
   set minimum-speed 0.1
   set memory-span 50
   set salience 0.9
+  set max-assoc 0.8
   set turn-frequency 0.1
 
   set-default-shape cars "car"
@@ -248,10 +250,10 @@ to see-cyclists   ;; cars look ahead for any cyclists in vision, and if so activ
   [
     ifelse any? cyclists-on patch-ahead 1
     [
-      set awareness true                               ; drivers become aware of cyclists
-      set memory memory-span                           ; memory of seeing a cyclist resets to max point
-      let assoc-chng salience * (0.8 - association)    ; calculate the stepwise change in association, which increases due to seeing a cyclist
-      set association (association + assoc-chng)       ; adjust the driver's association accordingly
+      set awareness true                                     ; drivers become aware of cyclists
+      set memory memory-span                                 ; memory of seeing a cyclist resets to max point
+      let assoc-chng salience * (max-assoc - association)    ; calculate the stepwise change in association, which increases due to seeing a cyclist
+      set association (association + assoc-chng)             ; adjust the driver's association accordingly
     ]
     [
       let assoc-chng salience * (0 - association)      ;; if no cyclists observed, change in association decreases
@@ -580,7 +582,7 @@ NIL
 0.0
 10.0
 0.0
-1.0
+0.5
 true
 false
 "" ""
