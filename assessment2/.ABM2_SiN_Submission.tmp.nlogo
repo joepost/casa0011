@@ -307,7 +307,8 @@ to check-collision  ;; cars check whether a cyclist is on the same patch (criter
 
       ]
       [  ;; IF LEARNING IS OFF:
-        set collisions count cyclists-here              ; all encounters between cars and cyclists translate into collisions
+        let casualties
+        set collisions casualties              ; all encounters between cars and cyclists translate into collisions
       ]
     ]
   ]
